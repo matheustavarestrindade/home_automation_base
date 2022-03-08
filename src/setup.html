@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Configure o seu aparelho</title>
+        <style>
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                background-color: #101010;
+                color: white;
+                padding: 0;
+                border: 0;
+                margin: 0;
+            }
+
+            .container {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                width: 80%;
+                height: 100vh;
+                max-width: 80%;
+            }
+            .container.disabled {
+                display: none;
+            }
+            h1 {
+                margin-bottom: 1rem;
+            }
+            ul {
+                list-style: none;
+                height: 60vh;
+                overflow-y: auto;
+                background-color: #e1e1e180;
+                padding: 1rem;
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+            }
+            li {
+                border-bottom: 1px solid white;
+                padding: 1rem;
+                cursor: pointer;
+                color: white;
+                font-weight: bold;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                position: relative;
+            }
+            li:hover {
+                background: #4287f5;
+            }
+            li.selected {
+                background: #4287f5;
+            }
+            input {
+                width: 100%;
+                margin-bottom: 1rem;
+                padding: 1rem;
+                border: 0;
+            }
+            button {
+                padding: 1rem;
+                width: 100%;
+                margin: 0;
+                border: 0;
+                background-color: #4287f5;
+                cursor: pointer;
+                color: white;
+                font-weight: bold;
+            }
+            .wave-container {
+                transform: scale(0.6);
+                position: absolute;
+                top: 0;
+                right: 0;
+            }
+            .wave {
+                display: inline-block;
+                border: 2px solid transparent;
+                border-top-color: #eee;
+                border-radius: 50%;
+                border-style: solid;
+                margin: 5px;
+            }
+
+            .waveStrength-3 .wv4.wave,
+            .waveStrength-2 .wv4.wave,
+            .waveStrength-2 .wv3.wave,
+            .waveStrength-1 .wv4.wave,
+            .waveStrength-1 .wv3.wave,
+            .waveStrength-1 .wv2.wave {
+                border-top-color: #202020;
+            }
+            .spinner-container {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+            }
+            .spinner-container.disabled {
+                display: none;
+            }
+            .spinner-box {
+                width: 430px;
+                height: 430px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .circle-border {
+                width: 250px;
+                height: 250px;
+                padding: 7px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                border-radius: 50%;
+                background: linear-gradient(0deg, rgb(0 0 0 / 0%) 31%, #062e83 49%, #4566ad 50%);
+                animation: spin 0.9s linear infinite;
+            }
+
+            .circle-border.success {
+                background: linear-gradient(0deg, rgb(0 0 0 / 0%) 31%, #038564 49%, #45ad64 50%);
+            }
+            .circle-border.error {
+                background: linear-gradient(0deg, rgb(0 0 0 / 0%) 31%, #e42d2d 49%, #ce0000 50%);
+            }
+            .circle-core {
+                width: 100%;
+                height: 100%;
+                background: black;
+                border-radius: 50%;
+            }
+            em {
+                position: absolute;
+                font-size: 22px;
+            }
+            @keyframes spin {
+                0% {
+                    transform: rotate(0deg);
+                }
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="spinner-container disabled">
+            <div class="spinner-box">
+                <div class="circle-border">
+                    <di class="circle-core"></di>
+                </div>
+                <em id="spinner-text">Aguarde ...</em>
+            </div>
+        </div>
+        <div class="container">
+            <h1>Selecione sua rede</h1>
+            <ul>
+                <li onclick="hs(this)" class="" ssid="teste">
+                    <span>Wifi Name</span>
+                    <i value="-100"></i>
+                </li>
+            </ul>
+            <input type="text" hidden id="wifi_ssid" name="wifi_ssid" placeholder="Digite a senha de sua rede" />
+            <input type="text" id="wifi_password" name="wifi_password" placeholder="Digite a senha de sua rede" />
+            <button onclick="handleConfig()">Conectar</button>
+        </div>
+    </body>
+    <script>
+        function hs(clicked) {
+            const li = [...document.querySelectorAll("li")];
+            const ssid = document.querySelector("#wifi_ssid");
+            ssid.value = clicked.getAttribute("ssid");
+            li.forEach((l) => l.classList.remove("selected"));
+            clicked.classList.add("selected");
+        }
+
+        async function handleConfig() {
+            const s = document.querySelector("#wifi_ssid");
+            const p = document.querySelector("#wifi_password");
+            const container = document.querySelector(".container");
+            const spinner_container = document.querySelector(".spinner-container");
+            const spinner_border = document.querySelector(".circle-border");
+            const spinner_text = document.querySelector("#spinner-text");
+
+            container.classList.add("disabled");
+            spinner_container.classList.remove("disabled");
+            spinner_border.classList.remove("success", "error");
+            spinner_text.textContent = "Aguarde...";
+            try {
+                const header = new Headers();
+                header.append("ssid", s.value);
+                header.append("password", p.value);
+                const data = await fetch("/configuration", {
+                    method: "POST",
+                    headers: header,
+                });
+                console.log(data);
+                const jsonRes = await data.json();
+                if (jsonRes.error) {
+                    spinner_border.classList.add("error");
+                    spinner_text.textContent = "Error de Conexão";
+                    setTimeout(() => {
+                        location.reload();
+                    }, 10000);
+                } else if (jsonRes.success) {
+                    spinner_border.classList.add("success");
+                    spinner_text.textContent = "Contactado!";
+                }
+                console.log(jsonRes);
+            } catch (err) {
+                spinner_border.classList.add("error");
+                spinner_text.textContent = "Error ao conectar...";
+                setTimeout(() => {
+                    location.reload();
+                }, 10000);
+            }
+        }
+
+        function loadStrn() {
+            const is = [...document.querySelectorAll("i")];
+            is.map((i) => {
+                const strength = Number(i.getAttribute("value"));
+                console.log(strength);
+                console.log(i.parentElement);
+                i.parentElement.replaceChild(gl(strength), i);
+            });
+        }
+
+        function gl(strength) {
+            return getWl(strength >= -50 ? 4 : strength >= -70 ? 3 : strength >= -80 ? 2 : 1);
+        }
+
+        function getWl(len) {
+            const e = document.createElement("div");
+            e.classList.add("waveStrength-" + len, "wave-container");
+            const d1 = document.createElement("div");
+            d1.classList.add("wv4", "wave");
+            const d2 = document.createElement("div");
+            d2.classList.add("wv3", "wave");
+            const d3 = document.createElement("div");
+            d3.classList.add("wv2", "wave");
+            const d4 = document.createElement("div");
+            d4.classList.add("wv1", "wave");
+            e.appendChild(d1);
+            d1.appendChild(d2);
+            d2.appendChild(d3);
+            d3.appendChild(d4);
+            return e;
+        }
+
+        loadStrn();
+    </script>
+</html>
