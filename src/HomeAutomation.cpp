@@ -103,96 +103,144 @@ void HomeAutomation::setup() {
 }
 
 void HomeAutomation::loadConfig() {
-    // clean FS, for testing
-    if (FORMAT_DRIVE) {
-        Serial.println("Formating FS...");
-        SPIFFS.format();
-    }
-    // read configuration from FS json
-    Serial.println("Mounting FS...");
+    File configFile = SPIFFS.open("/device_configuration.txt");
 
-    if (!SPIFFS.begin()) {
-        Serial.println("Failed to mount FS");
-        return;
-    }
-    Serial.println("Mounted file system");
-
-    if (FORMAT_DRIVE) {
-        Serial.println("Removing config...");
-        SPIFFS.remove("/config.json");
-    }
-
-    if (!SPIFFS.exists("/config.json")) {
-        return;
-    }
-    // file exists, reading and loading
-    Serial.println("Reading config file");
-    File configFile = SPIFFS.open("/config.json");
     if (!configFile) {
+        Serial.println("Error opening file to load configuration");
         return;
     }
-    Serial.println("Opened config file");
-    DynamicJsonDocument jsonBuffer(1024);
-    auto error = deserializeJson(jsonBuffer, configFile);
+    Serial.println("Found device configuration file");
 
-    serializeJson(jsonBuffer, Serial);
-    Serial.println("");
-
-    if (error) {
-        Serial.println("Failed to load json config");
-        return;
+    vector<String> fileContent;
+    while (configFile.available()) {
+        v.push_back(file.readStringUntil("\n"));
     }
-
-    Serial.println("Parsing json");
-    if (jsonBuffer.containsKey("uuid")) {
-        this->uuid = new char[strlen(jsonBuffer["uuid"])];
-        strcpy(this->uuid, jsonBuffer["uuid"]);
-        Serial.println("UUID Loaded");
+    configFile.close();
+    if (fileContent.size == 4) {
+        String uuid = fileContent[0];
+        String networking_ssid = fileContent[1];
+        String networking_password = fileContent[2];
+        String networking_reconection_attempts = fileContent[3];
+        Serial.println(uuid.c_str());
+        Serial.println(networking_ssid.c_str());
+        Serial.println(networking_password.c_str());
+        Serial.println(networking_reconection_attempts.c_str());
     }
-    if (jsonBuffer.containsKey("networking_ssid")) {
-        this->networking_ssid = new char[strlen(jsonBuffer["networking_ssid"])];
-        strcpy(this->networking_ssid, jsonBuffer["networking_ssid"]);
-        Serial.println("SSID Loaded");
-    }
-
-    if (jsonBuffer.containsKey("networking_password")) {
-        this->networking_password = new char[strlen(jsonBuffer["networking_password"])];
-        strcpy(this->networking_password, jsonBuffer["networking_password"]);
-        Serial.println("PASSWORD Loaded");
-    }
-    if (jsonBuffer.containsKey("networking_reconection_attempts"))
-        this->networking_reconection_attempts = jsonBuffer["networking_reconection_attempts"];
-    Serial.println("Parsing done!");
 }
 
 void HomeAutomation::saveConfig() {
-    Serial.println("saving config");
+    File configFile = SPIFFS.open("/device_configuration.txt", FILE_WRITE);
 
-    DynamicJsonDocument json(1024);
-
-    if (this->uuid != nullptr) {
-        json["uuid"] = this->uuid;
-    }
-    if (this->networking_ssid != nullptr) {
-        json["networking_ssid"] = this->networking_ssid;
-    }
-    if (this->networking_password != nullptr) {
-        json["networking_password"] = this->networking_password;
-    }
-    json["networking_reconection_attempts"] = this->networking_reconection_attempts;
-
-    File configFile = SPIFFS.open("/config.json", FILE_WRITE);
     if (!configFile) {
-        Serial.println("failed to open config file for writing");
+        Serial.println("Error opening file to load configuration");
+        return;
     }
+    Serial.println("Found device configuration file");
 
-    serializeJsonPretty(json, Serial);
-    serializeJson(json, configFile);
-    Serial.println(" ");
-    configFile.close();
-    json.clear();
-    // end save
+    if (this->uuid != nullptr && this->networking_ssid != nullpt) {
+        file.println(this->uuid);
+        file.println(this->networking_ssid);
+        if (this->networking_password != nullptr) {
+            file.println(this->networking_password);
+        } else {
+            // Wifi with no password
+            file.println("");
+        }
+        file.println(this->networking_reconection_attempts);
+    }
 }
+
+// void HomeAutomation::loadConfig() {
+//     // clean FS, for testing
+//     if (FORMAT_DRIVE) {
+//         Serial.println("Formating FS...");
+//         SPIFFS.format();
+//     }
+//     // read configuration from FS json
+//     Serial.println("Mounting FS...");
+
+//     if (!SPIFFS.begin()) {
+//         Serial.println("Failed to mount FS");
+//         return;
+//     }
+//     Serial.println("Mounted file system");
+
+//     if (FORMAT_DRIVE) {
+//         Serial.println("Removing config...");
+//         SPIFFS.remove("/config.json");
+//     }
+
+//     if (!SPIFFS.exists("/config.json")) {
+//         return;
+//     }
+//     // file exists, reading and loading
+//     Serial.println("Reading config file");
+//     File configFile = SPIFFS.open("/config.json");
+//     if (!configFile) {
+//         return;
+//     }
+//     Serial.println("Opened config file");
+//     DynamicJsonDocument jsonBuffer(1024);
+//     auto error = deserializeJson(jsonBuffer, configFile);
+
+//     serializeJson(jsonBuffer, Serial);
+//     Serial.println("");
+
+//     if (error) {
+//         Serial.println("Failed to load json config");
+//         return;
+//     }
+
+//     Serial.println("Parsing json");
+//     if (jsonBuffer.containsKey("uuid")) {
+//         this->uuid = new char[strlen(jsonBuffer["uuid"])];
+//         strcpy(this->uuid, jsonBuffer["uuid"]);
+//         Serial.println("UUID Loaded");
+//     }
+//     if (jsonBuffer.containsKey("networking_ssid")) {
+//         this->networking_ssid = new char[strlen(jsonBuffer["networking_ssid"])];
+//         strcpy(this->networking_ssid, jsonBuffer["networking_ssid"]);
+//         Serial.println("SSID Loaded");
+//     }
+
+//     if (jsonBuffer.containsKey("networking_password")) {
+//         this->networking_password = new char[strlen(jsonBuffer["networking_password"])];
+//         strcpy(this->networking_password, jsonBuffer["networking_password"]);
+//         Serial.println("PASSWORD Loaded");
+//     }
+//     if (jsonBuffer.containsKey("networking_reconection_attempts"))
+//         this->networking_reconection_attempts = jsonBuffer["networking_reconection_attempts"];
+//     Serial.println("Parsing done!");
+// }
+
+// void HomeAutomation::saveConfig() {
+//     Serial.println("saving config");
+
+//     DynamicJsonDocument json(1024);
+
+//     if (this->uuid != nullptr) {
+//         json["uuid"] = this->uuid;
+//     }
+//     if (this->networking_ssid != nullptr) {
+//         json["networking_ssid"] = this->networking_ssid;
+//     }
+//     if (this->networking_password != nullptr) {
+//         json["networking_password"] = this->networking_password;
+//     }
+//     json["networking_reconection_attempts"] = this->networking_reconection_attempts;
+
+//     File configFile = SPIFFS.open("/config.json", FILE_WRITE);
+//     if (!configFile) {
+//         Serial.println("failed to open config file for writing");
+//     }
+
+//     serializeJsonPretty(json, Serial);
+//     serializeJson(json, configFile);
+//     Serial.println(" ");
+//     configFile.close();
+//     json.clear();
+//     // end save
+// }
 
 void HomeAutomation::networkLoop() {
     if (this->server_type == 1) {
